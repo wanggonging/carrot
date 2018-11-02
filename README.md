@@ -1,8 +1,8 @@
 * Design goal
 
 root@vultr:~# git clone https://github.com/wanggonging/carrot
-root@vultr:~# chmod 700 carrot/launch.sh
-root@vultr:~# carrot/launch.sh
+root@vultr:~# chmod 700 carrot/carrot
+root@vultr:~# carrot/carrot
 ... installing dependencies
 ... configuring apache2
 ... using template [default]
