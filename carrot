@@ -1,4 +1,5 @@
 #!/bin/bash
 
-apt-get -qq install python 
+apt-get -qq install python python-pip
+pip install BeautifulSoup4
 python src/run.py
