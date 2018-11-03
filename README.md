@@ -1,4 +1,4 @@
-* Design goal
+# Design Goal
 
 root@vultr:~# git clone https://github.com/wanggonging/carrot
 root@vultr:~# chmod 700 carrot/carrot
@@ -18,10 +18,21 @@ root@vultr:~# tail -f /var/log/carrot.log
 ... one loop done. Sleeping 60 seconds.^C
 
 
-* Files and folder structure
+# Files and folder structure
+
+## Source files
 
 - launch.sh	master script
 - src\*.py      python scripts (config, download, encode, publish, etc.)
 - *_template\*  template (config, webpage template)
 
+## Cache files @ $HOME/.carrot
+
+- cache/index/WZ_*.json	video index
+- cache/v/WZ_*.mp4	video cache
+
+## Web site layout @ /var/www/html
+
+- index.html
+- <random>/*.mp4
 

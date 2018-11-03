@@ -6,6 +6,8 @@ import time
 import urllib2
 from bs4 import BeautifulSoup
 
+import ydl
+
 def main():
 
     template = "default"
@@ -59,6 +61,16 @@ def main():
 
         with io.open(channel["id"]+".json", "w") as f:
             f.write(json.dumps(index, ensure_ascii=False))
+
+        i = 0
+        for item in sorted(index.values(), key=lambda x: x['published'], reverse=True):
+            print("Downloading " + item["title"])
+            ydl.download(key)
+            i += 1
+            if i >= channel["max"]:
+                break
+
+
 
 
 main()

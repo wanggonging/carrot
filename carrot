@@ -1,6 +1,6 @@
 #!/bin/bash
 timedatectl set-timezone Asia/Macao
-apt-get update
-apt-get -qq install python python-pip
-pip install BeautifulSoup4
+apt-get update 
+apt-get -qq install python python-pip ffmpeg
+pip install BeautifulSoup4 youtube-dl
 python src/run.py
