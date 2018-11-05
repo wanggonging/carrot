@@ -91,6 +91,8 @@ def main():
     channels = config["channels"]
     for channel in channels:
 
+        youtube.refresh_channel_index(index, channel['id'], channel['max'])
+
         if os.path.exists("html.tmp"):
             print("Reusing cached html file ...")
             with open("html.tmp", "rb") as f:
@@ -107,7 +109,7 @@ def main():
         soup = BeautifulSoup(html, "lxml")
         now = int(time.time())
 
-        channel_index_file = channel["id"]+".json"
+        channel_index_file = cache_root+'/'+channel['cn']+channel['id']+'.json'
         index = {}
         try:
             if os.path.exists(channel_index_file):
@@ -162,7 +164,7 @@ def main():
 
         print('index written')
 
-        with io.open(channel["id"]+".json", "w") as f:
+        with io.open(channel_index_file, "w") as f:
             f.write(json.dumps(new_index, ensure_ascii=False, indent=4))
 
         print("New index written: " + str(len(new_index)) + " items");
