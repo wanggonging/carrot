@@ -21,6 +21,13 @@ if not os.path.exists(ydl_root):
 if not os.path.exists(v_root):
     os.makedirs(v_root)
 
+def sizeof_fmt(num, suffix=''):
+    for unit in ['','K','M','G']:
+        if abs(num) < 1024.0:
+            return "%d%s%s" % (int(round(num)), unit, suffix)
+        num /= 1024.0
+    return "%.1f%s%s" % (num, 'T', suffix)
+
 def run(cmd):
     p = subprocess.Popen(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = p.communicate()
@@ -28,13 +35,18 @@ def run(cmd):
 
 def init(channel, item):
     item['cn'] = channel['cn']
+    item['mp3'] = cache_root+"/v/"+item['cn']+item['key']+".mp3"
     item['mp4'] = cache_root+"/v/"+item['cn']+item['key']+".mp4"
     item['jpg'] = cache_root+"/v/"+item['cn']+item['key']+".jpg"
     item['ydl_mp4'] = cache_root+'/ydl/'+item['key']+".mp4"
     item['ydl_jpg'] = cache_root+'/ydl/'+item['key']+".jpg"
+    item['www_mp3'] = www_root+'/'+item['cn']+item['key']+".mp3"
     item['www_mp4'] = www_root+'/'+item['cn']+item['key']+".mp4"
+    item['www_mp4_raw'] = www_root+'/'+item['cn']+item['key']+"r.mp4"
     item['www_jpg'] = www_root+'/'+item['cn']+item['key']+".jpg"
+    item['html_mp3'] = '/'+item['cn']+item['key']+".mp3"
     item['html_mp4'] = '/'+item['cn']+item['key']+".mp4"
+    item['html_mp4_raw'] = '/'+item['cn']+item['key']+"r.mp4"
     item['html_jpg'] = '/'+item['cn']+item['key']+".jpg"
     item.pop('error', None)
 
@@ -68,6 +80,12 @@ def encode(item):
                 ' -y -crf 40 -strict -2 -b:a 20k -ac 1 -ar 8000 -r 10 ' + \
                 item['mp4']
         run(cmd)
+    if not os.path.exists(item['mp3']):
+        print("Generating "+item['mp3'])
+        cmd = 'ffmpeg -i ' + item['ydl_mp4'] + \
+                ' -y -q:a 8 -map a ' + \
+                item['mp3']
+        run(cmd)
     if not os.path.exists(item['jpg']):
         print("Generating "+item['jpg'])
         cmd = 'convert ' + item['ydl_jpg'] + \
@@ -75,12 +93,19 @@ def encode(item):
         run(cmd)
     try:
         probe = ffmpeg.probe(item['mp4'])
-        item['size'] = probe['format']['size']
-        item.pop('error', None)
+        item['mp4_size'] = sizeof_fmt(int(probe['format']['size']))
+        probe = ffmpeg.probe(item['ydl_mp4'])
+        item['mp4_raw_size']=sizeof_fmt(int(probe['format']['size']))
+        item['mp3_size']=sizeof_fmt(os.path.getsize(item['mp3']))
+        if not os.path.exists(item['www_mp3']):
+            os.link(item['mp3'], item['www_mp3'])
         if not os.path.exists(item['www_mp4']):
             os.link(item['mp4'], item['www_mp4'])
+        if not os.path.exists(item['www_mp4_raw']):
+            os.link(item['ydl_mp4'], item['www_mp4_raw'])
         if not os.path.exists(item['www_jpg']):
             os.link(item['jpg'], item['www_jpg'])
+        item.pop('error', None)
     except Exception as e:
         print(e)
         item['error'] = 'encode'
@@ -135,16 +160,21 @@ def main():
         one_channel(merged_index, channel)
 
     html = ''
-    with open(template+'_template/www/index.html.ITEM', 'r') as f:
+    with io.open(template+'_template/www/index.html.ITEM', mode='r', encoding='utf-8') as f:
         template_index_html_ITEM = f.read()
-    for item in sorted(merged_index.values(), key=lambda x: x['published'], reverse=True):
+    for item in sorted(merged_index.values(), key=lambda x: x['creation_time'], reverse=True):
         html += template_index_html_ITEM \
-                .replace('CARROT_JPG', item['html_jpg']) \
+                .replace('CARROT_MP4_RAW_SIZE', item['mp4_raw_size']) \
+                .replace('CARROT_MP4_SIZE', item['mp4_size']) \
+                .replace('CARROT_MP3_SIZE', item['mp3_size']) \
+                .replace('CARROT_MP4_RAW', item['html_mp4_raw']) \
                 .replace('CARROT_MP4', item['html_mp4']) \
+                .replace('CARROT_MP3', item['html_mp3']) \
+                .replace('CARROT_JPG', item['html_jpg']) \
                 .replace('CARROT_SHORTNAME', item['shortname']) \
                 .replace('CARROT_TITLE', item['title'])
 
-    with open(template+'_template/www/index.html', 'r') as f:
+    with io.open(template+'_template/www/index.html', mode='r', encoding='utf-8') as f:
         template_index_html = f.read()
 
     template_index_html = template_index_html.replace('CARROT_INDEX', html)
