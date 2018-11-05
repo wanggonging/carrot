@@ -26,7 +26,6 @@ def refresh_channel_index_with_html(index, html, channel_max):
 def refresh_channel_index(index, channel_id, channel_max):
   
     url = "https://www.youtube.com/channel/"+channel_id
-    print("Downloading " + url + "...")
     html = urllib2.urlopen(url).read()
 
     refresh_channel_index_with_html(index, html, channel_max)
