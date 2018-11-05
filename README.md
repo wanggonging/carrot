@@ -28,12 +28,13 @@ root@vultr:~# tail -f /var/log/carrot.log
 
 ## Cache files @ $HOME/.carrot
 
-- cache/index/WZ_*.json		video index
+- cache/WZ_*.json		video index
 - cache/v/WZ_*.mp4		video cache
+- cache/v/WZ_*.jpg              resized thumbnail
 - cache/ydl/key.mp4,key.jpg 	original video/thumbnail cache
 
 ## Web site layout @ /var/www/html
 
 - index.html
-- <random>/*.mp4
+- <random>/*.mp4,*.jpg
 

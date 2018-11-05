@@ -127,14 +127,9 @@ def main():
                     published=now-i
                     index[key] = {'key':key, 'published':published, 'title':title}
                     print("Added: " + title)
-                #pprint.pprint(index[key])
                 i = i+1
                 if i >= channel["max"]:
                     break
-
-        # dump to file
-        # for item in sorted(index.values(), key=lambda x: x['published']):
-        # pprint.pprint(item)
 
         new_index = {}
         i = 0
