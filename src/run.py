@@ -53,6 +53,8 @@ def download(item):
         item["width"] = int(video_stream['width'])
         item["height"] = int(video_stream['height'])
         item["duration"] = int(float(video_stream['duration']))
+        item['creation_time'] = video_stream['tags']['creation_time']
+        item['shortname'] = item['cn']+'-'+item['creation_time'][5:10]
         item.pop('error', None)
     except Exception as e:
         print(e)
@@ -135,12 +137,12 @@ def main():
     html = ''
     with open(template+'_template/www/index.html.ITEM', 'r') as f:
         template_index_html_ITEM = f.read()
-    print(template_index_html_ITEM)
     for item in sorted(merged_index.values(), key=lambda x: x['published'], reverse=True):
-        html +=template_index_html_ITEM.replace('CARROT_JPG', item['html_jpg']) \
+        html += template_index_html_ITEM \
+                .replace('CARROT_JPG', item['html_jpg']) \
                 .replace('CARROT_MP4', item['html_mp4']) \
-                .replace('CARROT_SHORTNAME', item['title'])
-        print(html)
+                .replace('CARROT_SHORTNAME', item['shortname']) \
+                .replace('CARROT_TITLE', item['title'])
 
     with open(template+'_template/www/index.html', 'r') as f:
         template_index_html = f.read()
