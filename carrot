@@ -1,6 +1,7 @@
 #!/bin/bash
 timedatectl set-timezone Asia/Macao
 apt-get update 
-apt-get -qq install python python-pip ffmpeg imagemagick
+apt-get install python python-pip ffmpeg imagemagick
 pip install BeautifulSoup4 youtube-dl ffmpeg-python
+cd carrot
 python src/run.py
