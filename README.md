@@ -1,9 +1,7 @@
 # Design Goal
 
 <pre>
-root@vultr:~# git clone https://github.com/wanggonging/carrot
-root@vultr:~# chmod 700 carrot/carrot
-root@vultr:~# carrot/carrot
+root@vultr:~# git clone https://github.com/wanggonging/carrot && chmod +x carrot/carrot && carrot/carrot
 ... installing dependencies
 ... configuring apache2
 ... using template [default]
