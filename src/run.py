@@ -4,6 +4,7 @@ import json
 import os
 import pprint
 import subprocess
+import sys
 import time
 
 import ydl
@@ -77,7 +78,7 @@ def encode(item):
     if not os.path.exists(item['mp4']):
         print("Generating "+item['mp4'])
         cmd = 'ffmpeg -i ' + item['ydl_mp4'] + \
-                ' -y -crf 40 -strict -2 -b:a 20k -ac 1 -ar 8000 -r 10 ' + \
+                ' -y -crf 35 -strict -2 -b:a 20k -ac 1 -ar 8000 -r 10 ' + \
                 item['mp4']
         run(cmd)
     if not os.path.exists(item['mp3']):
@@ -149,21 +150,26 @@ def main():
 
     os.nice(19) # super low priority so that ffmpeg won't impact apache
 
-    template = "default"
-    config_file = template+"_template/config.json"
-    with open(config_file) as data_file:
-        config = json.load(data_file)
+    if len(sys.argv) > 1:
+        template=sys.argv[1]
+    else:
+        template = "default"
 
-    channels = config["channels"]
-    merged_index = {}
-    for channel in channels:
-        one_channel(merged_index, channel)
+    while True:
+        config_file = template+"_template/config.json"
+        with open(config_file) as data_file:
+            config = json.load(data_file)
 
-    html = ''
-    with io.open(template+'_template/www/index.html.ITEM', mode='r', encoding='utf-8') as f:
-        template_index_html_ITEM = f.read()
-    for item in sorted(merged_index.values(), key=lambda x: x['creation_time'], reverse=True):
-        html += template_index_html_ITEM \
+        channels = config["channels"]
+        merged_index = {}
+        for channel in channels:
+            one_channel(merged_index, channel)
+
+        html = ''
+        with io.open(template+'_template/www/index.html.ITEM', mode='r', encoding='utf-8') as f:
+            template_index_html_ITEM = f.read()
+        for item in sorted(merged_index.values(), key=lambda x: x['creation_time'], reverse=True):
+            html += template_index_html_ITEM \
                 .replace('CARROT_MP4_RAW_SIZE', item['mp4_raw_size']) \
                 .replace('CARROT_MP4_SIZE', item['mp4_size']) \
                 .replace('CARROT_MP3_SIZE', item['mp3_size']) \
@@ -174,12 +180,13 @@ def main():
                 .replace('CARROT_SHORTNAME', item['shortname']) \
                 .replace('CARROT_TITLE', item['title'])
 
-    with io.open(template+'_template/www/index.html', mode='r', encoding='utf-8') as f:
-        template_index_html = f.read()
+        with io.open(template+'_template/www/index.html', mode='r', encoding='utf-8') as f:
+            template_index_html = f.read()
 
-    template_index_html = template_index_html.replace('CARROT_INDEX', html)
-    with open(www_root+'/index.html', 'w') as f:
-        f.write(template_index_html.encode('utf8'))
-    print('index.html updated');
+        template_index_html = template_index_html.replace('CARROT_INDEX', html)
+        with open(www_root+'/index.html', 'w') as f:
+            f.write(template_index_html.encode('utf8'))
+        print('index.html updated. Sleeping ...')
+        time.sleep(360)
 
 main()
