@@ -5,8 +5,8 @@ import os
 import pprint
 import subprocess
 import sys
+import threading
 import time
-
 import ydl
 import youtube
 
@@ -112,61 +112,82 @@ def encode(item):
         item['error'] = 'encode'
         raise Exception('encode error')
 
-def one_channel(merged_index, channel):
+g_template = 'default'
+g_channels = {}
+g_globalLock = threading.Lock()
 
+
+class CrawlerThread (threading.Thread):
+    def __init_(self):
+        threading.Thread.__init__(self)
+    def run(self):
+        while True: crawler()
+
+def crawler():
+    current_channels = {}
+    with g_globalLock:
+        for c in g_channels:
+            channel = g_channels[c]
+            if channel['enabled']:
+                current_channels[c] = channel
+    for c in current_channels: crawl_one_channel(current_channels[c])
+
+def crawl_one_channel(channel):
     print("one_channel: "+channel['name'])
-
-    channel_index_file = cache_root+'/'+channel['cn']+channel['id']+'.json'
     index = {}
-    try:
-        if os.path.exists(channel_index_file):
-            with open(channel_index_file) as f:
-                index = json.load(f)
-    except Exception:
-        pass
-
     youtube.refresh_channel_index(index, channel['id'], channel['max'])
-
-    new_index = {}
     i = 0
     for item in sorted(index.values(), key=lambda x: x['published'], reverse=True):
         try:
             init(channel, item)
             download(item)
             encode(item)
-            new_index[item['key']] = item
-            merged_index[item['key']] = item
+            with g_globalLock:
+                channel['index'][item['key']] = item
         except Exception:
             print(item['error'])
             pass
-
         i += 1
         if i >= channel["max"]:
             break
-    with io.open(channel_index_file, "w") as f:
-        f.write(json.dumps(new_index, ensure_ascii=False, indent=4))
+    with g_globalLock:
+        with io.open(channel['index_file'], "w") as f:
+            f.write(json.dumps(channel['index'], ensure_ascii=False, indent=4))
 
-def main():
+def load_template():
+    config_file = g_template+"_template/config.json"
+    with open(config_file) as data_file:
+        config = json.load(data_file)
+    with g_globalLock:
+        for c in g_channels:
+            g_channels[c].pop('enabled', None)
+        for channel in config["channels"]:
+            if not channel['id'] in g_channels:
+                g_channels[channel['id']] = channel
+                g_channels[channel['id']]['index'] = {}
+                channel_index_file = cache_root+'/'+channel['cn']+channel['id']+'.json'
+                g_channels[channel['id']]['index_file'] = channel_index_file
+                try:
+                    if os.path.exists(channel_index_file):
+                        with open(channel_index_file) as f:
+                            g_channels[channel['id']]['index'] = json.load(f)
+                except Exception:
+                    pass
+            else:
+                g_channels[channel['id']].update(channel)
+            g_channels[channel['id']]['enabled'] = True
 
-    os.nice(19) # super low priority so that ffmpeg won't impact apache
-
-    if len(sys.argv) > 1:
-        template=sys.argv[1]
-    else:
-        template = "default"
-
-    while True:
-        config_file = template+"_template/config.json"
-        with open(config_file) as data_file:
-            config = json.load(data_file)
-
-        channels = config["channels"]
-        merged_index = {}
-        for channel in channels:
-            one_channel(merged_index, channel)
-
+def generate_html():
+    merged_index = {}
+    with g_globalLock:
+        for c in g_channels:
+            channel = g_channels[c]
+            if channel['enabled']:
+                for i in channel['index']:
+                    item = channel['index'][i]
+                    merged_index[item['key']] = item
         html = ''
-        with io.open(template+'_template/www/index.html.ITEM', mode='r', encoding='utf-8') as f:
+        with io.open(g_template+'_template/www/index.html.ITEM', mode='r', encoding='utf-8') as f:
             template_index_html_ITEM = f.read()
         for item in sorted(merged_index.values(), key=lambda x: x['creation_time'], reverse=True):
             html += template_index_html_ITEM \
@@ -180,13 +201,27 @@ def main():
                 .replace('CARROT_SHORTNAME', item['shortname']) \
                 .replace('CARROT_TITLE', item['title'])
 
-        with io.open(template+'_template/www/index.html', mode='r', encoding='utf-8') as f:
+        with io.open(g_template+'_template/www/index.html', mode='r', encoding='utf-8') as f:
             template_index_html = f.read()
 
         template_index_html = template_index_html.replace('CARROT_INDEX', html)
         with open(www_root+'/index.html', 'w') as f:
             f.write(template_index_html.encode('utf8'))
+
+def main():
+
+    os.nice(19) # super low priority so that ffmpeg won't impact apache
+
+    if len(sys.argv) > 1: g_template=sys.argv[1]
+
+    load_template()
+
+    while True:
+        load_template()
+        crawler()
+        generate_html()
         print('index.html updated. Sleeping ...')
-        time.sleep(360)
+        time.sleep(3)
+
 
 main()

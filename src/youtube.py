@@ -18,7 +18,6 @@ def refresh_channel_index_with_html(index, html, channel_max):
                 title=h3.a.get_text()
                 published=now-i
                 index[key] = {'key':key, 'published':published, 'title':title}
-                print("Added: " + title)
             i = i+1
             if i >= channel_max:
                 break
