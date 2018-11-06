@@ -1,5 +1,6 @@
 # Design Goal
 
+<pre>
 root@vultr:~# git clone https://github.com/wanggonging/carrot
 root@vultr:~# chmod 700 carrot/carrot
 root@vultr:~# carrot/carrot
@@ -16,7 +17,7 @@ root@vultr:~# tail -f /var/log/carrot.log
 ... updating template from https://github.com/wanggonging/carrot/default_template
 ... refreshing pages
 ... one loop done. Sleeping 60 seconds.^C
-
+</pre>
 
 # Files and folder structure
 
