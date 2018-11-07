@@ -116,12 +116,17 @@ g_template = 'default'
 g_channels = {}
 g_globalLock = threading.Lock()
 
-
 class CrawlerThread (threading.Thread):
     def __init_(self):
         threading.Thread.__init__(self)
     def run(self):
-        while True: crawler()
+        min_loop_time = 10
+        while True:
+            start = time.time()
+            crawler()
+            end = time.time()
+            if (end - start) < min_loop_time:
+                time.sleep(min_loop_time - (end - start))
 
 def crawler():
     current_channels = {}
@@ -156,6 +161,7 @@ def crawl_one_channel(channel):
 
 def load_template():
     config_file = g_template+"_template/config.json"
+    print('Loading ' + config_file)
     with open(config_file) as data_file:
         config = json.load(data_file)
     with g_globalLock:
@@ -168,6 +174,7 @@ def load_template():
                 channel_index_file = cache_root+'/'+channel['cn']+channel['id']+'.json'
                 g_channels[channel['id']]['index_file'] = channel_index_file
                 try:
+                    print('Loading '+channel_index_file)
                     if os.path.exists(channel_index_file):
                         with open(channel_index_file) as f:
                             g_channels[channel['id']]['index'] = json.load(f)
@@ -204,24 +211,32 @@ def generate_html():
         with io.open(g_template+'_template/www/index.html', mode='r', encoding='utf-8') as f:
             template_index_html = f.read()
 
-        template_index_html = template_index_html.replace('CARROT_INDEX', html)
+        template_index_html = template_index_html \
+                        .replace('CARROT_INDEX', html) \
+                        .replace('CARROT_NOW', time.strftime('%Y.%m.%d %H:%M:%S',time.localtime()))
         with open(www_root+'/index.html', 'w') as f:
             f.write(template_index_html.encode('utf8'))
 
 def main():
 
+
     os.nice(19) # super low priority so that ffmpeg won't impact apache
 
-    if len(sys.argv) > 1: g_template=sys.argv[1]
+    if len(sys.argv) > 1:
+        global g_template
+        g_template=sys.argv[1]
+    print('Using template '+g_template)
 
     load_template()
 
+    crawlerThread = CrawlerThread()
+    crawlerThread.daemon = True
+    crawlerThread.start()
+
     while True:
-        load_template()
-        crawler()
         generate_html()
+        load_template()
         print('index.html updated. Sleeping ...')
         time.sleep(3)
-
 
 main()
