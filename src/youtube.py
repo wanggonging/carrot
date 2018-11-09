@@ -38,8 +38,9 @@ def refresh_channel_index_with_apikey(index, apikey, channel_id, channel_max, ch
                 key = item['id']['videoId']
                 if not key in index:
                     title = item['snippet']['title']
+                    publishedAt = item['snippet']['publishedAt']
                     published=now-i
-                    index[key] = {'key':key, 'published':published, 'title':title}
+                    index[key] = {'key':key, 'published':published, 'publishedAt':publishedAt, 'title':title}
                 i = i+1
                 if i>= channel_max:
                     break

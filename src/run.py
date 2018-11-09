@@ -182,13 +182,13 @@ def crawl_one_channel(channel):
             print("Exception in crawler")
             print(e)
             pass
-        print('Done: ' + item['title'])
+        with g_globalLock:
+            with io.open(channel['index_file'], "w") as f:
+                f.write(json.dumps(channel['index'], ensure_ascii=False, indent=4))
+            print('Done: ' + item['title'])
         i += 1
         if i >= channel["max"]:
             break
-    with g_globalLock:
-        with io.open(channel['index_file'], "w") as f:
-            f.write(json.dumps(channel['index'], ensure_ascii=False, indent=4))
 
 def load_template():
     config_file = g_template+"_template/config.json"
@@ -221,6 +221,12 @@ def load_template():
                 g_channels[channel['id']].update(channel)
             g_channels[channel['id']]['enabled'] = True
 
+def get_key(item):
+    if 'publishedAt' in item:
+        return item['publishedAt']
+    else:
+        return item['creation_time']
+
 def generate_html():
     run('rsync -av '+g_template+'_template/www/ /var/www/html') 
     merged_index = {}
@@ -234,7 +240,7 @@ def generate_html():
         html = ''
         with io.open(g_template+'_template/www/index.ITEM', mode='r', encoding='utf-8') as f:
             template_index_html_ITEM = f.read()
-        for item in sorted(merged_index.values(), key=lambda x: x['creation_time'], reverse=True):
+        for item in sorted(merged_index.values(), key=lambda x: get_key(x), reverse=True):
             html += template_index_html_ITEM \
                 .replace('CARROT_MP4_RAW_SIZE', item['mp4_raw_size']) \
                 .replace('CARROT_MP4_SIZE', item['mp4_size']) \
