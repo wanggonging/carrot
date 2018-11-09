@@ -98,17 +98,21 @@ def download(item):
 
 def encode(item):
     duration = get_media_duration(item['ydl_mp4'])
+    partial_mp4 = False
     if os.path.exists(item['mp4']) and (get_media_duration(item['mp4']) < duration):
         print("Partial file "+item['mp4']+' '+item['title'])
-    if os.path.exists(item['mp3']) and (get_media_duration(item['mp3']) < duration):
-        print("Partial file "+item['mp3']+' '+item['title'])
-    if not os.path.exists(item['mp4']) or get_media_duration(item['mp4']) < duration:
+        partial_mp4 = True
+    if not os.path.exists(item['mp4']) or partial_mp4:
         print("Generating "+item['mp4']+' '+item['title'])
         cmd = 'ffmpeg -i ' + item['ydl_mp4'] + \
                 ' -y -crf 35 -strict -2 -b:a 20k -ac 1 -ar 8000 -r 10 ' + \
                 item['mp4']
         run(cmd)
-    if not os.path.exists(item['mp3']) or get_media_duration(item['mp3']) < duration:
+    partial_mp3 = False
+    if os.path.exists(item['mp3']) and (get_media_duration(item['mp3']) < duration):
+        print("Partial file "+item['mp3']+' '+item['title'])
+        partial_mp3 = True
+    if not os.path.exists(item['mp3']) or partial_mp3:
         print("Generating "+item['mp3']+' '+item['title'])
         cmd = 'ffmpeg -i ' + item['ydl_mp4'] + \
                 ' -y -q:a 8 -map a ' + \
