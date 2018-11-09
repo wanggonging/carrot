@@ -1,1 +1,1 @@
-<tr><td><img src="CARROT_JPG"/></td><td>CARROT_SHORTNAME</td><td><a href="CARROT_MP4_RAW">H(CARROT_MP4_RAW_SIZE)</a> <a href="CARROT_MP4">L(CARROT_MP4_SIZE)</a> <a href="CARROT_MP3">MP3(CARROT_MP3_SIZE)</a></td></tr>
+<tr><td><img src="CARROT_JPG"/></td><td><font size="-1">CARROT_SHORTNAME CARROT_TITLE</font></td><td><a href="CARROT_MP4_RAW">H(CARROT_MP4_RAW_SIZE)</a> <a href="CARROT_MP4">L(CARROT_MP4_SIZE)</a> <a href="CARROT_MP3">MP3(CARROT_MP3_SIZE)</a></td></tr>

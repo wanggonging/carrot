@@ -51,38 +51,65 @@ def init(channel, item):
     item['html_jpg'] = '/'+item['cn']+item['key']+".jpg"
     item.pop('error', None)
 
-def download(item):
-    if os.path.exists(item['ydl_jpg']) and \
-       os.path.exists(item['ydl_mp4']):
-        pass
-    else:
-        print("Downloading " + item["title"])
-        ydl.download("~/.carrot/cache/ydl/", item['key'])
+def get_media_duration(media_file):
     try:
-        if not os.path.exists(item['ydl_jpg']):
-            raise Exception('jpg not found')
-        probe = ffmpeg.probe(item['ydl_mp4'])
-        video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
+        probe = ffmpeg.probe(media_file)
+        duration = float(probe['format']['duration'])
+        print(media_file + ' duration: ' + str(duration))
+    except Exception as e:
+        duration = 0
+    return duration
+
+def assign(item):
+    probe = ffmpeg.probe(item['ydl_mp4'])
+    video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
+    try:
         item["width"] = int(video_stream['width'])
         item["height"] = int(video_stream['height'])
         item["duration"] = int(float(video_stream['duration']))
-        item['creation_time'] = video_stream['tags']['creation_time']
+        item['creation_time'] = probe['format']['tags']['creation_time']
         item['shortname'] = item['cn']+'-'+item['creation_time'][5:10]
         item.pop('error', None)
     except Exception as e:
         print(e)
+        pprint.pprint(probe)
+        raise e
+
+def download(item):
+    if os.path.exists(item['ydl_jpg']) and \
+        os.path.exists(item['ydl_mp4']):
+        try:
+            assign(item)
+            return
+        except Exception as e:
+            print(item['ydl_mp4']+' might be corrupted. Downloading again.')
+            pass
+
+    print("Downloading " + item["title"])
+    ydl.download("~/.carrot/cache/ydl/", item['key'])
+    try:
+        if not os.path.exists(item['ydl_jpg']):
+            raise Exception('jpg not found')
+        assign(item)
+    except Exception as e:
+        print('Exception: ' + str(e))
         item['error'] = 'download'
         raise Exception('download error')
 
 def encode(item):
-    if not os.path.exists(item['mp4']):
-        print("Generating "+item['mp4'])
+    duration = get_media_duration(item['ydl_mp4'])
+    if os.path.exists(item['mp4']) and (get_media_duration(item['mp4']) < duration):
+        print("Partial file "+item['mp4']+' '+item['title'])
+    if os.path.exists(item['mp3']) and (get_media_duration(item['mp3']) < duration):
+        print("Partial file "+item['mp3']+' '+item['title'])
+    if not os.path.exists(item['mp4']) or get_media_duration(item['mp4']) < duration:
+        print("Generating "+item['mp4']+' '+item['title'])
         cmd = 'ffmpeg -i ' + item['ydl_mp4'] + \
                 ' -y -crf 35 -strict -2 -b:a 20k -ac 1 -ar 8000 -r 10 ' + \
                 item['mp4']
         run(cmd)
-    if not os.path.exists(item['mp3']):
-        print("Generating "+item['mp3'])
+    if not os.path.exists(item['mp3']) or get_media_duration(item['mp3']) < duration:
+        print("Generating "+item['mp3']+' '+item['title'])
         cmd = 'ffmpeg -i ' + item['ydl_mp4'] + \
                 ' -y -q:a 8 -map a ' + \
                 item['mp3']
@@ -93,11 +120,9 @@ def encode(item):
                 ' -resize 64x36 ' + item['jpg']
         run(cmd)
     try:
-        probe = ffmpeg.probe(item['mp4'])
-        item['mp4_size'] = sizeof_fmt(int(probe['format']['size']))
-        probe = ffmpeg.probe(item['ydl_mp4'])
-        item['mp4_raw_size']=sizeof_fmt(int(probe['format']['size']))
-        item['mp3_size']=sizeof_fmt(os.path.getsize(item['mp3']))
+        item['mp4_raw_size'] = sizeof_fmt(os.path.getsize(item['ydl_mp4']))
+        item['mp4_size']     = sizeof_fmt(os.path.getsize(item['mp4']))
+        item['mp3_size']     = sizeof_fmt(os.path.getsize(item['mp3']))
         if not os.path.exists(item['www_mp3']):
             os.link(item['mp3'], item['www_mp3'])
         if not os.path.exists(item['www_mp4']):
@@ -115,12 +140,13 @@ def encode(item):
 g_template = 'default'
 g_channels = {}
 g_globalLock = threading.Lock()
+g_apikey = None
 
 class CrawlerThread (threading.Thread):
     def __init_(self):
         threading.Thread.__init__(self)
     def run(self):
-        min_loop_time = 10
+        min_loop_time = 300  # seconds
         while True:
             start = time.time()
             crawler()
@@ -140,7 +166,10 @@ def crawler():
 def crawl_one_channel(channel):
     print("one_channel: "+channel['name'])
     index = {}
-    youtube.refresh_channel_index(index, channel['id'], channel['max'])
+    if g_apikey:
+        youtube.refresh_channel_index_with_apikey(index, g_apikey, channel['id'], channel['max'], len(channel['index']))
+    else:
+        youtube.refresh_channel_index(index, channel['id'], channel['max'])
     i = 0
     for item in sorted(index.values(), key=lambda x: x['published'], reverse=True):
         try:
@@ -149,9 +178,11 @@ def crawl_one_channel(channel):
             encode(item)
             with g_globalLock:
                 channel['index'][item['key']] = item
-        except Exception:
-            print(item['error'])
+        except Exception as e:
+            print("Exception in crawler")
+            print(e)
             pass
+        print('Done: ' + item['title'])
         i += 1
         if i >= channel["max"]:
             break
@@ -165,6 +196,11 @@ def load_template():
     with open(config_file) as data_file:
         config = json.load(data_file)
     with g_globalLock:
+        global g_apikey
+        if 'apikey' in config:
+            g_apikey=config['apikey']
+        else:
+            g_apikey=None
         for c in g_channels:
             g_channels[c].pop('enabled', None)
         for channel in config["channels"]:
@@ -173,6 +209,7 @@ def load_template():
                 g_channels[channel['id']]['index'] = {}
                 channel_index_file = cache_root+'/'+channel['cn']+channel['id']+'.json'
                 g_channels[channel['id']]['index_file'] = channel_index_file
+                g_channels[channel['id']]['index'] = {}
                 try:
                     print('Loading '+channel_index_file)
                     if os.path.exists(channel_index_file):
@@ -237,6 +274,6 @@ def main():
         generate_html()
         load_template()
         print('index.html updated. Sleeping ...')
-        time.sleep(3)
+        time.sleep(30)
 
 main()
