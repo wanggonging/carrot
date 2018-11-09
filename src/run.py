@@ -222,6 +222,7 @@ def load_template():
             g_channels[channel['id']]['enabled'] = True
 
 def generate_html():
+    run('rsync -av '+g_template+'_template/www/ /var/www/html') 
     merged_index = {}
     with g_globalLock:
         for c in g_channels:
@@ -231,7 +232,7 @@ def generate_html():
                     item = channel['index'][i]
                     merged_index[item['key']] = item
         html = ''
-        with io.open(g_template+'_template/www/index.html.ITEM', mode='r', encoding='utf-8') as f:
+        with io.open(g_template+'_template/www/index.ITEM', mode='r', encoding='utf-8') as f:
             template_index_html_ITEM = f.read()
         for item in sorted(merged_index.values(), key=lambda x: x['creation_time'], reverse=True):
             html += template_index_html_ITEM \
@@ -245,7 +246,7 @@ def generate_html():
                 .replace('CARROT_SHORTNAME', item['shortname']) \
                 .replace('CARROT_TITLE', item['title'])
 
-        with io.open(g_template+'_template/www/index.html', mode='r', encoding='utf-8') as f:
+        with io.open(g_template+'_template/www/index', mode='r', encoding='utf-8') as f:
             template_index_html = f.read()
 
         template_index_html = template_index_html \
