@@ -9,15 +9,16 @@ class MyLogger(object):
         pass
 
     def error(self, msg):
-        print(msg)
+        g_logger.error(msg)
 
 def my_hook(d):
-    if d['status'] == 'finished':
-        print('Done downloading')
+    pass
+    #if d['status'] == 'finished':
+    #    print('Done downloading')
 
 ydl_opts = {
     'format' : '(mp4)[height<=400]',
-    #'logger':MyLogger(),
+    'logger':MyLogger(),
     'outtmpl':'~/.carrot/cache/ydl/%(id)s.%(ext)s',
     'progress_hooks':[my_hook],
     'writethumbnail':True
