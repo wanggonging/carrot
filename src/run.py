@@ -305,9 +305,10 @@ def main():
     g_clicks = clicks.Clicks(carrot_root+"/clicks.json", "/var/log/apache2/access.log")
 
     while True:
-        time.sleep(30)
+        run('git pull -q -ff')
         g_clicks.update()
         generate_html()
+        time.sleep(10)
         load_template()
 
 main()
