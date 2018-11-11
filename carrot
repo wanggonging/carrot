@@ -5,4 +5,4 @@ apt-get -y install python python-pip ffmpeg imagemagick apache2 rsync
 pip install BeautifulSoup4 youtube-dl ffmpeg-python lxml
 cd ~/carrot
 chmod +x relaunch
-./relauch
+./relaunch

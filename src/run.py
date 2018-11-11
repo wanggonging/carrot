@@ -273,6 +273,7 @@ def generate_html():
                 .replace('CARROT_MP3', item['html_mp3']) \
                 .replace('CARROT_JPG', item['html_jpg']) \
                 .replace('CARROT_SHORTNAME', item['shortname']) \
+                .replace('CARROT_CN', item['cn']) \
                 .replace('CARROT_TITLE', item['title'])\
                 .replace('CARROT_CLICKS', str(g_clicks.get_clicks(item['key'])))
 
