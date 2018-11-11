@@ -9,6 +9,7 @@ import threading
 import time
 import ydl
 import youtube
+import clicks
 
 
 import logging
@@ -272,7 +273,8 @@ def generate_html():
                 .replace('CARROT_MP3', item['html_mp3']) \
                 .replace('CARROT_JPG', item['html_jpg']) \
                 .replace('CARROT_SHORTNAME', item['shortname']) \
-                .replace('CARROT_TITLE', item['title'])
+                .replace('CARROT_TITLE', item['title'])\
+                .replace('CARROT_CLICKS', str(g_clicks.get_clicks(item['key'])))
 
         with io.open(g_template+'_template/www/index', mode='r', encoding='utf-8') as f:
             template_index_html = f.read()
@@ -299,8 +301,12 @@ def main():
     crawlerThread.daemon = True
     crawlerThread.start()
 
+    global g_clicks
+    g_clicks = clicks.Clicks(carrot_root+"/clicks.json", "/var/log/apache2/access.log")
+
     while True:
         time.sleep(30)
+        g_clicks.update()
         generate_html()
         load_template()
 
