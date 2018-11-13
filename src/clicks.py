@@ -1,7 +1,9 @@
+import io
 import os
-#from dateutil import parser
 import time
 import json
+import gzip
+import sys
 
 def to_seconds(t):
     return time.mktime(t.timetuple())
@@ -35,9 +37,16 @@ class Clicks:
         except Exception:
             pass
         if not 'clicks' in self.data: self.data['clicks'] = {}
-        self.handle = open(self.log_file, "r")
+        if self.log_file.endswith('.gz'):
+            self.handle = gzip.open(self.log_file, 'r')
+        else:
+            self.handle = open(self.log_file, "r")
         self.lines = 0
         self.read_to_end()
+
+    def save(self):
+        with io.open(self.json_file, "w", encoding='utf-8') as f:
+            f.write(unicode(json.dumps(self.data, ensure_ascii=False, indent=4)))
 
     def read_to_end(self):
         while True:
@@ -52,6 +61,7 @@ class Clicks:
         new_size = os.path.getsize(self.log_file)
         if self.size > new_size:
             self.size = 0
+            self.save()
             self.handle = open(self.log_file, "r")
         self.read_to_end()
 
@@ -71,12 +81,17 @@ def dump(c):
 
 
 def main():
+    if len(sys.argv) > 1:
+        log_file=sys.argv[1]
+    else:
+        log_file='/var/log/apache2/access.log'
     print("Parsing ...")
-    c = Clicks("clicks.json", "/var/log/apache2/access.log")
+    c = Clicks("clicks.json", log_file)
     c.update()
     print("Dumping ...")
     dump(c)
     print("get_clicks() returns: " + str(c.get_clicks('uO2FLayVaz8')))
+    c.save()
     del c
 
 if __name__ == "__main__":
