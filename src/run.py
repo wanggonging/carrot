@@ -263,7 +263,9 @@ def generate_html():
         html = ''
         with io.open(g_template+'_template/www/index.ITEM', mode='r', encoding='utf-8') as f:
             template_index_html_ITEM = f.read()
+        total_clicks=0
         for item in sorted(merged_index.values(), key=lambda x: get_key(x), reverse=True):
+            total_clicks+=g_clicks.get_clicks(item['key'])
             html += template_index_html_ITEM \
                 .replace('CARROT_MP4_RAW_SIZE', item['mp4_raw_size']) \
                 .replace('CARROT_MP4_SIZE', item['mp4_size']) \
@@ -282,6 +284,7 @@ def generate_html():
 
         template_index_html = template_index_html \
                         .replace('CARROT_INDEX', html) \
+                        .replace('CARROT_TOTAL_CLICKS', str(total_clicks)) \
                         .replace('CARROT_NOW', time.strftime('%Y.%m.%d %H:%M:%S',time.localtime()))
         with open(www_root+'/index.html', 'w') as f:
             f.write(template_index_html.encode('utf8'))
