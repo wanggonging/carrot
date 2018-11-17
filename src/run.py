@@ -123,9 +123,19 @@ def encode(item):
         partial_mp4 = True
     if not os.path.exists(item['mp4']) or partial_mp4:
         g_logger.info("Generating "+item['mp4']+' '+item['title'])
-        cmd = 'ffmpeg -i ' + item['ydl_mp4'] + \
-                ' -y -crf 35 -strict -2 -b:a 20k -ac 1 -ar 8000 -r 10 ' + \
-                item['mp4']
+        begin_mp4 = g_template+"_template/begin.mp4"
+        if os.path.exists(begin_mp4) and item['width'] == 640:
+            cmd = 'ffmpeg -i ' + item['ydl_mp4'] + \
+                    ' -i ' + begin_mp4 + \
+                    ' -y -crf 35 -strict -2 -b:a 40k -ar 8000 -r 10 ' + \
+                    ' -map [v] -map [a] ' + \
+                    ' -filter_complex [0:v]scale=640x360[v1];[1:v:0][1:a:0][v1][0:a]concat=n=2:v=1:a=1[v][a] ' + \
+                    item['mp4']
+        else:
+            cmd = 'ffmpeg -i ' + item['ydl_mp4'] + \
+                    ' -y -crf 35 -strict -2 -b:a 40k -ar 8000 -r 10 ' + \
+                    item['mp4']
+        g_logger.debug(cmd)
         run(cmd)
     partial_mp3 = False
     if os.path.exists(item['mp3']) and (get_media_duration(item['mp3']) < duration):
